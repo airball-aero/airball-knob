@@ -1,0 +1,3 @@
+[submodule "components/airball-usb-link/airball-usb-link"]
+	path = components/airball-usb-link/airball-usb-link
+	url = git@github.com:airball-aero/airball-usb-link.git
