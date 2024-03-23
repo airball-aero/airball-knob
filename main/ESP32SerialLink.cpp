@@ -63,12 +63,16 @@ private:
 std::mutex instance_mu_;
 static ESP32SerialLinkImpl* instance_ = nullptr;
 
-ESP32SerialLink* ESP32SerialLink::instance() {
+ESP32SerialLinkImpl* instance() {
   std::unique_lock<std::mutex> lock(instance_mu_);
   if (instance_ == nullptr) {
     instance_ = new ESP32SerialLinkImpl();
   }
   return instance_;
+}
+
+ESP32SerialLink* ESP32SerialLink::instance() {
+  return ::instance();
 }
 
 void tusb_cdcacm_callback(int itf, cdcacm_event_t *event) {
@@ -79,7 +83,7 @@ void tusb_cdcacm_callback(int itf, cdcacm_event_t *event) {
                         rx_buf,
                         CONFIG_TINYUSB_CDC_RX_BUFSIZE,
                         &rx_size);
-    QueueHandle_t q = ESP32SerialLinkImpl::instance()->rx_queue();
+    QueueHandle_t q = instance()->rx_queue();
     for (int i = 0; i < rx_size; i++) {
       xQueueSendToBack(q, &(rx_buf[i]), 0);
       tinyusb_cdcacm_write_queue(TINYUSB_CDC_ACM_0, &(rx_buf[i]), 1);

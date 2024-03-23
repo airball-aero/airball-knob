@@ -1,5 +1,3 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "ESP32SerialLink.h"
 #include "Telemetry.h"
 #include "CanBus.h"
@@ -7,8 +5,7 @@
 
 class App {
 public:
-  App()
-      : host_link_(ESP32SerialLink::instance()) {}
+  App() : host_link_(ESP32SerialLink::instance()) {}
 
   void run() { mainLoop(); }
 
@@ -16,25 +13,17 @@ private:
   [[noreturn]] void mainLoop() {
     airball::Telemetry::Message m {};
     while (true) {
-      bool work = false;
       while (host_link_.recv(&m)) {
-        work = true;
         processMessageFromHost(m);
       }
       while (can_bus_.recv(&m)) {
-        work = true;
         processMessageFromCanBus(m);
       }
       if (knob_.evaluateEncoderStep(&m)) {
-        work = true;
         host_link_.send(m);
       }
       if (knob_.evaluateButtonTransition(&m)) {
-        work = true;
         host_link_.send(m);
-      }
-      if (!work) {
-        vTaskDelay(pdMS_TO_TICKS(1));
       }
     }
   }

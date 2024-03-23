@@ -9,7 +9,6 @@ public:
 
   void send(airball::Telemetry::Message m);
   bool recv(airball::Telemetry::Message* m);
-private:
 };
 
 #endif // MAIN_CANBUS_H
