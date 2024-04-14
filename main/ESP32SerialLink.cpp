@@ -83,11 +83,8 @@ void tusb_cdcacm_callback(int itf, cdcacm_event_t *event) {
                         rx_buf,
                         CONFIG_TINYUSB_CDC_RX_BUFSIZE,
                         &rx_size);
-    QueueHandle_t q = instance()->rx_queue();
     for (int i = 0; i < rx_size; i++) {
-      xQueueSendToBack(q, &(rx_buf[i]), 0);
-      tinyusb_cdcacm_write_queue(TINYUSB_CDC_ACM_0, &(rx_buf[i]), 1);
-      tinyusb_cdcacm_write_flush(TINYUSB_CDC_ACM_0, 0);
+      xQueueSendToBackFromISR(instance()->rx_queue(), &(rx_buf[i]), 0);
     }
   }
 }
@@ -112,7 +109,7 @@ ESP32SerialLinkImpl::ESP32SerialLinkImpl() {
   ESP_ERROR_CHECK(tusb_cdc_acm_init(&acm_cfg));
   ESP_LOGI(kTag, "USB initialization done");
 
-  rx_queue_ = xQueueCreate(kQueueLength, 1);
+  rx_queue_ = xQueueCreate(kQueueLength, sizeof(uint8_t));
 }
 
 void ESP32SerialLinkImpl::push(uint8_t c) {
@@ -121,5 +118,5 @@ void ESP32SerialLinkImpl::push(uint8_t c) {
 }
 
 bool ESP32SerialLinkImpl::pull(uint8_t* c) {
-  return xQueueReceive(rx_queue_, &c, 0);
+  return xQueueReceive(rx_queue_, c, 0);
 }

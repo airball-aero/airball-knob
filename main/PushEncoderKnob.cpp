@@ -113,23 +113,30 @@ bool PushEncoderKnob::evaluateEncoderStep(airball::Telemetry::Message* m) {
   t_last_ = t;
   int encoderStateNew = readEncoderState();
   if (encoderState_ != encoderStateNew) {
-    bool transition = false;
+    bool encoderStepRecorded = false;
     if (encoderState_ == kEncoderState00) {
-      transition = true;
-      m->domain = airball::Telemetry::kMessageDomainLocal;
-      m->id = kTransitions[{encoderStateNew, encoderState_}];
-      switch (m->id) {
-        case airball::Telemetry::kLocalMessageIdKnobIncrement:
-          ESP_LOGI(TAG, "Increment");
-          break;
-        case airball::Telemetry::kLocalMessageIdKnobDecrement:
-          ESP_LOGI(TAG, "Decrement");
-          break;
+      auto transition = kTransitions.find({encoderStateNew, encoderState_});
+      if (transition != kTransitions.end()) {
+        encoderStepRecorded = true;
+        m->domain = airball::Telemetry::kMessageDomainLocal;
+        m->id = transition->second;
+        switch (m->id) {
+          case airball::Telemetry::kLocalMessageIdKnobIncrement:
+            ESP_LOGI(TAG, "Increment");
+            break;
+          case airball::Telemetry::kLocalMessageIdKnobDecrement:
+            ESP_LOGI(TAG, "Decrement");
+            break;
+          default:
+            ESP_LOGI(TAG, "Unknown");
+            encoderStepRecorded = false;
+            break;
+        }
+        memset(m->data, 0, 8);
       }
-      memset(m->data, 0, 8);
     }
     encoderState_ = encoderStateNew;
-    return transition;
+    return encoderStepRecorded;
   }
   return false;
 }

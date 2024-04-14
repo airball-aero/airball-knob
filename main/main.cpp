@@ -1,11 +1,18 @@
+#include <esp_log.h>
 #include "ESP32SerialLink.h"
 #include "Telemetry.h"
 #include "CanBus.h"
 #include "PushEncoderKnob.h"
+#include "LeaderSelectSense.h"
 
 class App {
 public:
-  App() : host_link_(ESP32SerialLink::instance()) {}
+  App()
+      : host_link_(ESP32SerialLink::instance()),
+        can_bus_(),
+        knob_(),
+        leader_select_()
+  {}
 
   void run() { mainLoop(); }
 
@@ -21,27 +28,43 @@ private:
       }
       if (knob_.evaluateEncoderStep(&m)) {
         host_link_.send(m);
+        can_bus_.send(m);
       }
       if (knob_.evaluateButtonTransition(&m)) {
         host_link_.send(m);
+        can_bus_.send(m);
       }
     }
   }
 
-  void processMessageFromHost(airball::Telemetry::Message m) {
-    switch (m.domain) {
+  void processMessageFromHost(airball::Telemetry::Message incoming) {
+    ESP_LOGI("main", "Incoming %d,%d", incoming.domain, incoming.id);
+    switch (incoming.domain) {
       case airball::Telemetry::kMessageDomainCanBus:
-        can_bus_.send(m);
+        can_bus_.send(incoming);
+        break;
+      case airball::Telemetry::kMessageDomainLocal:
+        switch (incoming.id) {
+          case airball::Telemetry::kLocalMessageIdIdentifyLeaderFollower: {
+            ESP_LOGI("main", "kLocalMessageIdIdentifyLeaderFollower");
+            airball::Telemetry::Message m = { 0 };
+            leader_select_.reportLeaderSelect(&m);
+            host_link_.send(m);
+            break;
+          }
+          default:
+            break;
+        }
         break;
       default:
         break;
     }
   }
 
-  void processMessageFromCanBus(airball::Telemetry::Message m) {
-    switch (m.domain) {
+  void processMessageFromCanBus(airball::Telemetry::Message incoming) {
+    switch (incoming.domain) {
       case airball::Telemetry::kMessageDomainCanBus:
-        host_link_.send(m);
+        host_link_.send(incoming);
         break;
       default:
         break;
@@ -51,9 +74,15 @@ private:
   airball::Telemetry host_link_;
   CanBus can_bus_;
   PushEncoderKnob knob_;
+  LeaderSelectSense leader_select_;
 };
 
 extern "C" void app_main(void) {
+  /*
+  esp_log_level_set("*", ESP_LOG_NONE);
+  esp_log_level_set("PushEncoderKnob", ESP_LOG_INFO);
+  esp_log_level_set("LeaderSelectSense", ESP_LOG_INFO);
+   */
   App app;
   app.run();
 }
