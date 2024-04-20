@@ -39,8 +39,6 @@ void CanBus::send(airball::Telemetry::Message m) {
   auto r = twai_transmit(&twai, pdMS_TO_TICKS(10));
   if (r != ESP_OK) {
     ESP_LOGI(TAG, "Error in twai_transmit: %d", r);
-  } else {
-    ESP_LOGI(TAG, "Successful twai_transmit");
   }
 }
 
@@ -49,7 +47,6 @@ bool CanBus::recv(airball::Telemetry::Message* m) {
   auto r = twai_receive(&twai, 0);
   if (r == ESP_OK) {
     toAirballMessage(&twai, m);
-    ESP_LOGI(TAG, "Successful twai_receive");
     return true;
   }
   return false;

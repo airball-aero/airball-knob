@@ -38,7 +38,6 @@ private:
   }
 
   void processMessageFromHost(airball::Telemetry::Message incoming) {
-    ESP_LOGI("main", "Incoming %d,%d", incoming.domain, incoming.id);
     switch (incoming.domain) {
       case airball::Telemetry::kMessageDomainCanBus:
         can_bus_.send(incoming);
@@ -46,7 +45,6 @@ private:
       case airball::Telemetry::kMessageDomainLocal:
         switch (incoming.id) {
           case airball::Telemetry::kLocalMessageIdIdentifyLeaderFollower: {
-            ESP_LOGI("main", "kLocalMessageIdIdentifyLeaderFollower");
             airball::Telemetry::Message m = { 0 };
             leader_select_.reportLeaderSelect(&m);
             host_link_.send(m);
@@ -78,11 +76,6 @@ private:
 };
 
 extern "C" void app_main(void) {
-  /*
-  esp_log_level_set("*", ESP_LOG_NONE);
-  esp_log_level_set("PushEncoderKnob", ESP_LOG_INFO);
-  esp_log_level_set("LeaderSelectSense", ESP_LOG_INFO);
-   */
   App app;
   app.run();
 }
